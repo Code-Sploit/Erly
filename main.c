@@ -4,27 +4,25 @@
  *  - SolindekDev <soindeklive.biznes@gmail.pl>
  */
 
-// code-sploit: https://i.imgur.com/3nGxdLS.jpg
-// i will kill my fucking keyboard tbh i hate these builit in binds bruh
-
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "lexer.h"
 
 #define HELP() \
-    printf("Erly help\nFlags:\n\t- help / h - Show this message\n\t- version / v - Show actuall version of compiler"); 
+    printf("Erly help\nFlags:\n\t- help / h - Show this message\n\t- version / v - Show actuall version of compiler\n"); 
 
-#ifdef x86_64
+#if defined(__x86_64__) || defined(_M_X64) 
 # define VERSION()               \
     printf("Erly compiler (");   \
     printf("x86_64");            \
-    printf(") 1.0.0v");          
+    printf(") 1.0.0v\n");          
 #else
 # define VERSION()               \
     printf("Erly compiler (");   \
     printf("Unknown arch");      \
-    printf(") 1.0.0v");
+    printf(") 1.0.0v\n");
 #endif
     
 int argument_is_flag(char* argument)
@@ -32,14 +30,6 @@ int argument_is_flag(char* argument)
     if      (argument[0] == '-' && argument[1] != '\0') return 1;
     else if (argument[0] == '-' && argument[1] == '-') return 1;
     else return 0;
-}
-
-int flag_equal(char* flag, char* flag_name)
-{
-    if      (flag[0] == '-' && flag[1] != '\0') flag += 1;
-    else if (flag[0] == '-' && flag[1] == '-') flag += 2;
-
-    return strcmp(flag, flag_name) == 0;
 }
 
 char *read_file(char *filename)
@@ -68,6 +58,36 @@ char *read_file(char *filename)
     return contents;
 }
 
+int file_exist(char* filename)
+{
+    FILE* f = fopen(filename, "r");
+    if (f == NULL)
+        return 0;
+    return 1;
+}
+
+void compilation_process(char* filename)
+{
+    if (filename == NULL)
+        exit(0);
+
+    if (!file_exist(filename))
+    {
+        printf("\"%s\" does not exist\n", filename);
+        exit(1);
+    }
+
+    char* file_value = read_file(filename);
+#ifdef DEBUG
+    printf("Compilation process with file %s\n", filename);
+    printf("Reading file named %s, file value:\n%s\n", filename, file_value);
+    printf("Starting lexer process\n");
+#endif
+
+    lexer_t* lexer = lexer_initialize(file_value);
+
+}
+
 int main(int argc, char** argv)
 {
     if (argc < 2)
@@ -76,37 +96,32 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    *argv++;   
+    (void)*argv++;   
 
-    int help_flag, version_flag;
-    char* filename;
+    int help_flag = 0;
+    int version_flag = 0;
+    char* filename = NULL;
 
     while (*argv != NULL)
     {
-        if (argv_is_flag(*argv))
+        if (argument_is_flag(*argv))
         {
-            if (flag_equal(*argv, "help") || flag_equal(*argv, "h"))
+            if (strcmp(*argv, "--help") == 0 || strcmp(*argv, "-h") == 0)
                 help_flag = 1;
-            else if (flag_equal(*argv, "version") || flag_equal(*argv, "v"))
+            else if (strcmp(*argv, "--version") == 0 || strcmp(*argv, "-v") == 0)
                 version_flag = 1;
         }
         else
         {
             filename = *argv;
         }
-        *argv++;
+        (void)*argv++;
     }
 
-    if (help_flag) 
-    {
-        HELP();
-        return 0;
-    }
-    else if (version_flag)
-    {
-        VERSION();
-        return 0;
-    }
-    
-    printf("Compilation process with file %s", filename);
+    if (help_flag == 1) { HELP(); }
+    else if (version_flag == 1) { VERSION(); }
+    else { compilation_process(filename); }
+        
+
+    return 0;
 }
